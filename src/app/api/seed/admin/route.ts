@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { agregarUsuario, existeAdministrador } from "@/lib/almacen-usuarios";
+import {
+  actualizarUsuario,
+  agregarUsuario,
+  buscarUsuarioPorDni,
+  existeAdministrador,
+} from "@/lib/almacen-usuarios";
 import { hashPassword, validarDNI, validarPassword } from "@/lib/auth";
 
 const SEED_KEY_HEADER = "x-admin-seed-key";
@@ -34,6 +39,44 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // Verificar que NO exista ya un administrador
+    const body = await request.json();
+
+    // Recuperación de acceso: restablece la contraseña de un administrador
+    // existente. También exige la clave secreta ADMIN_SEED_KEY.
+    if ((body as { restablecer?: boolean }).restablecer === true) {
+      const { dni: dniReset, password: passReset } = body as {
+        dni?: string;
+        password?: string;
+      };
+      if (!dniReset || !passReset || !validarPassword(passReset)) {
+        return NextResponse.json(
+          { error: "DNI y una contraseña de al menos 8 caracteres son requeridos." },
+          { status: 400 },
+        );
+      }
+      const existente = await buscarUsuarioPorDni(dniReset);
+      if (!existente || existente.rol !== "Administrador") {
+        return NextResponse.json(
+          { error: "No existe un administrador con ese DNI." },
+          { status: 404 },
+        );
+      }
+      const { hash, salt } = await hashPassword(passReset);
+      await actualizarUsuario(existente.id, {
+        passwordHash: hash,
+        passwordSalt: salt,
+        debeCambiarPassword: true,
+        estado: "activo",
+        sessionToken: null,
+        sessionExpiresAt: null,
+        fechaActualizacion: new Date().toISOString(),
+      });
+      return NextResponse.json({
+        success: true,
+        mensaje: "Contraseña del administrador restablecida. Debe cambiarla al ingresar.",
+      });
+    }
+
     if (await existeAdministrador()) {
       return NextResponse.json(
         { error: "Ya existe un administrador en el sistema." },
@@ -41,7 +84,6 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    const body = await request.json();
     const { dni, nombres, apellidos, password } = body as {
       dni?: string;
       nombres?: string;
