@@ -1,0 +1,20 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/column-formatting.schema.json",
+  "elmType": "div",
+  "style": {
+    "display": "inline-flex",
+    "align-items": "center",
+    "padding": "2px 10px",
+    "border-radius": "12px",
+    "font-size": "12px",
+    "font-weight": "600",
+    "color": "=if(@currentField == 'Resuelta', '#1E7D4A', if(@currentField == 'En Proceso', '#8A6000', '#B32515'))",
+    "background-color": "=if(@currentField == 'Resuelta', '#DDF4E7', if(@currentField == 'En Proceso', '#FFF2CC', if(@currentField == 'Pendiente', '#FDE2DF', 'transparent')))"
+  },
+  "children": [
+    {
+      "elmType": "span",
+      "txtContent": "@currentField"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+"Proveedor","NumeroCita","RUC","Fecha","Anden","HoraCita","HoraLlegada","MinutosDiferencia","EstadoLlegada","EstadoOperativo","UnidadesEstimadas","Conductor","Licencia","Placa","Homologacion","Puerta","Operario","HoraInicioDescarga","HoraFin","Resultado","Aceptadas","Rechazadas"
+"EJEMPLO - BORRAR","336117","20000000011","2026-11-16","PTA06","09:00","09:05","5","Puntual","En patio","504","Juan Pérez","Q12345678","ABC-123","Vigente","","","","","","0","0"

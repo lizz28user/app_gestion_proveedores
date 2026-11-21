@@ -1,0 +1,30 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/column-formatting.schema.json",
+  "elmType": "div",
+  "style": {
+    "display": "inline-flex",
+    "align-items": "center",
+    "padding": "2px 10px",
+    "border-radius": "12px",
+    "font-size": "12px",
+    "font-weight": "600",
+    "color": "=if(@currentField == 'Puntual', '#1E7D4A', if(@currentField == 'Tardanza', '#B32515', if(@currentField == 'Anticipado', '#2456A6', '#3D3E40')))",
+    "background-color": "=if(@currentField == 'Puntual', '#DDF4E7', if(@currentField == 'Tardanza', '#FDE2DF', if(@currentField == 'Anticipado', '#E1ECFF', 'transparent')))"
+  },
+  "children": [
+    {
+      "elmType": "span",
+      "style": {
+        "width": "7px",
+        "height": "7px",
+        "margin-right": "6px",
+        "border-radius": "50%",
+        "background-color": "=if(@currentField == 'Puntual', '#2FBF71', if(@currentField == 'Tardanza', '#F02615', if(@currentField == 'Anticipado', '#4C8DFF', '#76797B')))"
+      }
+    },
+    {
+      "elmType": "span",
+      "txtContent": "=if(@currentField == 'Tardanza', @currentField + ' (+' + [$MinutosDiferencia] + ' min)', @currentField)"
+    }
+  ]
+}

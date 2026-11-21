@@ -1,0 +1,30 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/column-formatting.schema.json",
+  "elmType": "div",
+  "style": {
+    "display": "inline-flex",
+    "align-items": "center",
+    "padding": "2px 10px",
+    "border-radius": "12px",
+    "font-size": "12px",
+    "font-weight": "600",
+    "color": "=if(@currentField == 'Recibido', '#1E7D4A', if(@currentField == 'En muelle', '#2456A6', if(@currentField == 'En patio', '#8A6000', if(@currentField == 'Pendiente', '#3D3E40', '#3D3E40'))))",
+    "background-color": "=if(@currentField == 'Recibido', '#DDF4E7', if(@currentField == 'En muelle', '#E1ECFF', if(@currentField == 'En patio', '#FFF2CC', if(@currentField == 'Pendiente', '#ECEBEA', 'transparent'))))"
+  },
+  "children": [
+    {
+      "elmType": "span",
+      "style": {
+        "width": "7px",
+        "height": "7px",
+        "margin-right": "6px",
+        "border-radius": "50%",
+        "background-color": "=if(@currentField == 'Recibido', '#2FBF71', if(@currentField == 'En muelle', '#4C8DFF', if(@currentField == 'En patio', '#FAB701', '#76797B')))"
+      }
+    },
+    {
+      "elmType": "span",
+      "txtContent": "@currentField"
+    }
+  ]
+}

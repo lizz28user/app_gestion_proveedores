@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1366 768" preserveAspectRatio="xMidYMid slice">
+  <!-- Fondo glassy FP para Power Apps: usar como imagen de fondo de cada pantalla -->
+  <defs>
+    <filter id="b" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="90"/></filter>
+    <pattern id="g" width="56" height="56" patternUnits="userSpaceOnUse">
+      <path d="M56 0H0V56" fill="none" stroke="#ffffff" stroke-opacity="0.03" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1366" height="768" fill="#07070A"/>
+  <g filter="url(#b)">
+    <circle cx="80" cy="40" r="260" fill="#F02615" fill-opacity="0.38"/>
+    <circle cx="1300" cy="420" r="230" fill="#8B0000" fill-opacity="0.5"/>
+    <circle cx="700" cy="860" r="190" fill="#FAB701" fill-opacity="0.26"/>
+    <circle cx="460" cy="400" r="170" fill="#5B5E63" fill-opacity="0.35"/>
+  </g>
+  <rect width="1366" height="768" fill="url(#g)"/>
+</svg>
