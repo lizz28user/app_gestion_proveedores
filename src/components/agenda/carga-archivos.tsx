@@ -22,6 +22,22 @@ const STORAGE_KEYS = {
 
 type EstadoArchivo = "vacio" | "cargando" | "listo" | "error";
 
+/** Maestro de proveedores cargado antes en este navegador (o null si no hay). */
+function maestroGuardado(): Record<string, unknown>[] | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.maestro);
+    const filas: unknown = raw ? JSON.parse(raw) : null;
+    return Array.isArray(filas) && filas.length > 0 ? (filas as Record<string, unknown>[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Cuántos proveedores tiene el maestro guardado (0 si se usa el integrado). */
+function contarMaestro(): number {
+  return maestroGuardado()?.length ?? 0;
+}
+
 interface ArchivoCruceProps {
   onResultado: (resultado: ReturnType<typeof ejecutarCruce>) => void;
 }
@@ -50,10 +66,15 @@ export function ArchivoCruce({ onResultado }: ArchivoCruceProps) {
   const [error, setError] = useState<string | null>(null);
   const [metaGuardada, setMetaGuardada] = useState<ReturnType<typeof cargarMetaCruce>>(null);
   const ultimoProceso = useRef<string>("");
+  const [maestroInfo, setMaestroInfo] = useState(0);
 
   useEffect(() => {
     setMetaGuardada(cargarMetaCruce());
   }, [resultado]);
+
+  useEffect(() => {
+    setMaestroInfo(contarMaestro());
+  }, []);
 
   const procesar = useCallback(
     async (agenda: File, reporte: File, maestro: File | null) => {
@@ -65,10 +86,11 @@ export function ArchivoCruce({ onResultado }: ArchivoCruceProps) {
         const [filasAgenda, filasReporte, filasMaestro] = await Promise.all([
           leerExcelArchivo(agenda, { palabraClaveEncabezados: "CD DESTINO" }),
           leerExcelArchivo(reporte, { palabraClaveEncabezados: "NÚMERO DE CITA" }),
-          // Base de datos de Proveedores: la incluida en la app, o el archivo si se carga uno.
+          // Base de datos de Proveedores: el archivo si se carga uno; si no, el último
+          // archivo cargado en este navegador; si no hay, la incluida en la app.
           maestro
             ? leerExcelArchivo(maestro, { palabraClaveEncabezados: "PROVEEDOR" })
-            : Promise.resolve(MAESTRO_INTEGRADO),
+            : Promise.resolve(maestroGuardado() ?? MAESTRO_INTEGRADO),
         ]);
 
         if (filasAgenda.length === 0) {
@@ -94,7 +116,11 @@ export function ArchivoCruce({ onResultado }: ArchivoCruceProps) {
 
         localStorage.setItem(STORAGE_KEYS.agenda, JSON.stringify(filasAgenda));
         localStorage.setItem(STORAGE_KEYS.reporte, JSON.stringify(filasReporte));
-        localStorage.setItem(STORAGE_KEYS.maestro, JSON.stringify(maestro ? filasMaestro : []));
+        // El maestro se conserva para los próximos cruces (no se borra al cambiar archivos).
+        if (maestro) {
+          localStorage.setItem(STORAGE_KEYS.maestro, JSON.stringify(filasMaestro));
+          setMaestroInfo(contarMaestro());
+        }
         guardarMetaCruce({
           fechaAgenda: fechaDesdeNombreArchivo(agenda.name),
           archivoAgenda: agenda.name,
@@ -132,7 +158,6 @@ export function ArchivoCruce({ onResultado }: ArchivoCruceProps) {
     limpiar();
     localStorage.removeItem(STORAGE_KEYS.agenda);
     localStorage.removeItem(STORAGE_KEYS.reporte);
-    localStorage.removeItem(STORAGE_KEYS.maestro);
     guardarMetaCruce(null);
     ultimoProceso.current = "";
     setArchivoAgenda(null);
@@ -285,6 +310,11 @@ export function ArchivoCruce({ onResultado }: ArchivoCruceProps) {
             disabled={procesando}
             className={CLASE_INPUT}
           />
+          <p className="text-xs text-fp-dim">
+            {maestroInfo > 0
+              ? `RUC de ${maestroInfo.toLocaleString("es-PE")} proveedores guardado en este navegador.`
+              : "El cruce es por RUC. Carga PROVEEDORES.xlsx una vez y queda guardado."}
+          </p>
         </div>
       </div>
 
