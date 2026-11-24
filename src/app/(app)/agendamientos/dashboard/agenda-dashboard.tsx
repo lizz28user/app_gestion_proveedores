@@ -578,7 +578,10 @@ export function AgendaDashboard({ pie }: { pie?: React.ReactNode }) {
 
   const termino = normalizarBusqueda(busquedaPendiente);
   const pendientesFiltrados = termino
-    ? pendientes.filter((p: ProveedorCruce) => normalizarBusqueda(p.proveedorOriginal).includes(termino))
+    ? pendientes.filter(
+        (p: ProveedorCruce) =>
+          normalizarBusqueda(p.proveedorOriginal).includes(termino) || (p.ruc ?? "").includes(termino),
+      )
     : pendientes;
   const pendientesVisibles = verTodosPendientes || termino ? pendientesFiltrados : pendientesFiltrados.slice(0, 7);
   const rankingVisible = verTodoRanking ? proveedoresRanking : proveedoresRanking.slice(0, 7);
@@ -775,10 +778,15 @@ export function AgendaDashboard({ pie }: { pie?: React.ReactNode }) {
                     pendientesVisibles.map((fila: ProveedorCruce) => (
                       <li
                         key={fila.proveedorNormalizado}
-                        className="truncate px-1.5 py-2.5 text-base text-slate-800 dark:text-zinc-200"
-                        title={fila.proveedorOriginal}
+                        className="flex items-baseline justify-between gap-3 px-1.5 py-2.5 text-base text-slate-800 dark:text-zinc-200"
+                        title={[fila.proveedorOriginal, ...fila.observaciones].join("\n")}
                       >
-                        {fila.proveedorOriginal}
+                        <span className="truncate">{fila.proveedorOriginal}</span>
+                        <span
+                          className={`shrink-0 font-mono text-sm tabular-nums ${fila.ruc ? "text-fp-dim" : "font-semibold text-[#F02615]"}`}
+                        >
+                          {fila.ruc ?? "Sin RUC"}
+                        </span>
                       </li>
                     ))
                   )}

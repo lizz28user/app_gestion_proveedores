@@ -566,22 +566,34 @@ export function ejecutarCruce(
       }
     }
 
-    // 4c. Buscar coincidencias en Reporte
-    // Prioridad: RUC resuelto > Nombre normalizado
-    let coincidencias: FilaReporteCita[] = [];
-
+    // 4c. Buscar las citas del proveedor en el Reporte POR RUC.
     // Solo cuentan filas con número de cita (igual que el conteo de citas).
     const conCita = (filas: FilaReporteCita[] | undefined): FilaReporteCita[] =>
       (filas ?? []).filter((c) => normalizarNumeroCita(c.numeroCita) !== "");
 
-    coincidencias = conCita(rucResuelto ? reportePorRuc.get(rucResuelto) : undefined);
-    // Si el RUC de la agenda no está en el Maestro, igual se prueba contra el Reporte.
-    if (coincidencias.length === 0 && a.ruc) {
-      coincidencias = conCita(reportePorRuc.get(a.ruc));
+    // Sin RUC en el Maestro: se usa el RUC de la agenda o, si no trae,
+    // el RUC con el que el Reporte IKF registra ese mismo nombre.
+    if (!rucResuelto && a.ruc) rucResuelto = a.ruc;
+    if (!rucResuelto && a.proveedorNormalizado) {
+      const rucsDelNombre = new Set(
+        conCita(reportePorNombre.get(a.proveedorNormalizado))
+          .map((c) => c.ruc)
+          .filter((r): r is string => Boolean(r))
+      );
+      if (rucsDelNombre.size === 1) {
+        rucResuelto = [...rucsDelNombre][0];
+        obs.push("RUC tomado del Reporte IKF (el proveedor no está en el Maestro)");
+      } else if (rucsDelNombre.size > 1) {
+        obs.push(`El nombre aparece con ${rucsDelNombre.size} RUC distintos en el Reporte: requiere revisión`);
+      } else {
+        obs.push("Proveedor sin RUC: no está en el Maestro de Proveedores");
+      }
     }
-    if (coincidencias.length === 0) {
-      coincidencias = conCita(reportePorNombre.get(a.proveedorNormalizado));
-    }
+
+    // El cruce con el Reporte es siempre por RUC.
+    const coincidencias: FilaReporteCita[] = rucResuelto
+      ? conCita(reportePorRuc.get(rucResuelto))
+      : [];
 
     // 4d. Determinar estado y cita match
     if (coincidencias.length === 0) {
@@ -598,19 +610,6 @@ export function ejecutarCruce(
         // Varias citas el mismo día es normal: se suman todas.
         estado = "ambiguo";
         obs.push(`${numerosCitaUnicos.size} citas en el Reporte (se suman todas)`);
-      }
-
-      // 4e. Verificar relación comprobable: RUC del reporte debe coincidir con RUC resuelto
-      if (rucResuelto) {
-        const citasConRuc = coincidencias.filter((c) => c.ruc);
-        if (citasConRuc.length > 0) {
-          const rucsEnCitas = new Set(citasConRuc.map((c) => c.ruc));
-          if (!rucsEnCitas.has(rucResuelto)) {
-            obs.push(
-              "El RUC de la agenda no coincide con el RUC del reporte de citas"
-            );
-          }
-        }
       }
     }
 
