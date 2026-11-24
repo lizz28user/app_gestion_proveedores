@@ -36,25 +36,28 @@ export function normalizarNombre(nombre: string | undefined | null): string {
   // Reemplazar & por espacio
   s = s.replace(/&/g, " ");
 
-  // Eliminar sufijos societarios (con y sin puntos, con y sin espacios)
+  // Puntos, guiones y símbolos → espacio (así "S.A.C", "S-A-C" y "S A C" quedan iguales)
+  s = s.replace(/[._\-/,;:()]/g, " ").replace(/\s+/g, " ").trim();
+
+  // Eliminar sufijos societarios ya separados por espacios.
+  // Orden: los más largos primero.
   const sufijos = [
-    "S\\.?\\s*A\\.?\\s*C\\.?",   // S.A.C., S.A.C, SAC, S A C
-    "S\\.?\\s*A\\.?",            // S.A., S.A, SA, S A
-    "S\\.?\\s*R\\.?\\s*L\\.?",   // S.R.L., S.R.L, SRL, S R L
-    "E\\.?\\s*I\\.?\\s*R\\.?\\s*L\\.?", // E.I.R.L., EIRL
+    "E I R L",
+    "S A C",
+    "S A S",
+    "S R L",
+    "S C E",
     "EIRL",
-    "S\\.?\\s*A\\.?\\s*S\\.?",   // S.A.S.
-    "S\\.?\\s*C\\.?\\s*E\\.?",   // S.C.E.
-    "S\\.?\\s*A\\.?\\s*C\\s*$",  // S.A.C al final sin punto
-    "S\\.?\\s*A\\s*$",           // S.A al final sin punto
+    "SAC",
+    "SAS",
+    "SRL",
+    "SCE",
+    "S A",
+    "SA",
   ];
   for (const suf of sufijos) {
-    const regex = new RegExp(`\\b${suf}\\b`, "g");
-    s = s.replace(regex, " ");
+    s = s.replace(new RegExp(`(^| )${suf}(?= |$)`, "g"), " ");
   }
-
-  // Eliminar puntos, guiones, símbolos sueltos
-  s = s.replace(/[._-]/g, " ");
 
   // Colapsar espacios múltiples y trim
   s = s.replace(/\s+/g, " ").trim();
@@ -567,10 +570,17 @@ export function ejecutarCruce(
     // Prioridad: RUC resuelto > Nombre normalizado
     let coincidencias: FilaReporteCita[] = [];
 
-    if (rucResuelto && reportePorRuc.has(rucResuelto)) {
-      coincidencias = reportePorRuc.get(rucResuelto)!;
-    } else if (reportePorNombre.has(a.proveedorNormalizado)) {
-      coincidencias = reportePorNombre.get(a.proveedorNormalizado)!;
+    // Solo cuentan filas con número de cita (igual que el conteo de citas).
+    const conCita = (filas: FilaReporteCita[] | undefined): FilaReporteCita[] =>
+      (filas ?? []).filter((c) => normalizarNumeroCita(c.numeroCita) !== "");
+
+    coincidencias = conCita(rucResuelto ? reportePorRuc.get(rucResuelto) : undefined);
+    // Si el RUC de la agenda no está en el Maestro, igual se prueba contra el Reporte.
+    if (coincidencias.length === 0 && a.ruc) {
+      coincidencias = conCita(reportePorRuc.get(a.ruc));
+    }
+    if (coincidencias.length === 0) {
+      coincidencias = conCita(reportePorNombre.get(a.proveedorNormalizado));
     }
 
     // 4d. Determinar estado y cita match
@@ -585,11 +595,9 @@ export function ejecutarCruce(
       if (numerosCitaUnicos.size === 1) {
         citaMatch = String(coincidencias[0].numeroCita);
       } else {
-        // Múltiples citas distintas → ambiguo
+        // Varias citas el mismo día es normal: se suman todas.
         estado = "ambiguo";
-        obs.push(
-          `Múltiples citas encontradas (${numerosCitaUnicos.size}): requiere revisión manual`
-        );
+        obs.push(`${numerosCitaUnicos.size} citas en el Reporte (se suman todas)`);
       }
 
       // 4e. Verificar relación comprobable: RUC del reporte debe coincidir con RUC resuelto
@@ -640,7 +648,8 @@ export function ejecutarCruce(
       if (!tieneUnidSolicitadas) obs.push("Falta Unid Solicitadas en la Agenda");
       if (!tieneCantMpsCds) obs.push("Falta Cant Mps CDs en la Agenda");
       if (!tieneFR) obs.push("Falta FR en la Agenda");
-      estado = "pendiente";
+      // Faltan datos para calcular los LPN, pero eso no quita la cita:
+      // "pendiente" significa únicamente "sin cita en el Reporte".
     } else {
       ratio = a.unidSolicitadas / a.cantMpsCds;
       // Los LPN son unidades enteras: se redondean (sin decimales).
